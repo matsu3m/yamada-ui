@@ -57,6 +57,7 @@ export type CalendarContext = Pick<
   | "holidays"
   | "today"
   | "selectMonthWith"
+  | "selectionMode"
 > &
   Pick<
     UseCalendarProps,
@@ -527,6 +528,7 @@ export type UseCalendarProps<Y extends MaybeValue = Date> = {
    */
   maxSelectedValues?: number
   selectMonthWith?: "month" | "value"
+  selectionMode?: "single" | "multiple" | "range"
 }
 
 export const useCalendar = <Y extends MaybeValue = Date>({
@@ -557,6 +559,7 @@ export const useCalendar = <Y extends MaybeValue = Date>({
   withLabel = true,
   maxSelectedValues,
   selectMonthWith = "month",
+  selectionMode = "single",
   ...rest
 }: UseCalendarProps<Y>) => {
   const { theme } = useTheme()
@@ -581,6 +584,8 @@ export const useCalendar = <Y extends MaybeValue = Date>({
     defaultValue,
     onChange: rest.onChange,
   })
+
+  console.log(`value: ${value}`)
 
   const isMulti = isArray(value)
 
@@ -715,6 +720,7 @@ export const useCalendar = <Y extends MaybeValue = Date>({
     dayRefs,
     maxSelectedValues,
     selectMonthWith,
+    selectionMode,
   }
 }
 
@@ -1358,6 +1364,7 @@ export const useMonth = () => {
     prevMonth,
     nextMonth,
     maxSelectedValues,
+    selectionMode,
   } = useCalendarContext()
 
   const isMulti = isArray(selectedValue)
@@ -1526,20 +1533,71 @@ export const useMonth = () => {
       if (!el || isDisabled(el)) return
 
       setValue((prev) => {
-        if (!isArray(prev)) {
-          return newValue
-        } else {
-          const isSelected = prev.some((value) => isSameDate(value, newValue))
+        switch (selectionMode) {
+          case "single": {
+            return newValue
+          }
 
-          if (!isSelected) {
-            return [...prev, newValue]
-          } else {
-            return prev.filter((value) => !isSameDate(value, newValue))
+          case "multiple": {
+            if (!isArray(prev)) {
+              return [newValue]
+            }
+
+            const isSelected = prev.some((value) => isSameDate(value, newValue))
+
+            if (!isSelected) {
+              return [...prev, newValue]
+            } else {
+              return prev.filter((value) => !isSameDate(value, newValue))
+            }
+          }
+
+          case "range": {
+            if (!isArray(prev) || prev.length === 0) {
+              return [newValue]
+            }
+
+            const isSelected = prev.some((value) => isSameDate(value, newValue))
+
+            if (prev.length == 1) {
+              if (!isSelected) {
+                // prev と newValue の間の日付を全てリストに格納
+                const dates = []
+                let startDate = new Date(prev[0])
+                let endDate = new Date(newValue)
+
+                // 開始日と終了日を確認して、必要に応じて交換
+                if (startDate > endDate) {
+                  ;[startDate, endDate] = [endDate, startDate]
+                }
+
+                let currentDate = new Date(startDate)
+
+                while (currentDate <= endDate) {
+                  dates.push(new Date(currentDate))
+                  currentDate.setDate(currentDate.getDate() + 1)
+                }
+
+                return dates
+              } else {
+                return []
+              }
+            }
+
+            if (!isSelected) {
+              return [newValue]
+            } else {
+              return []
+            }
+          }
+
+          default: {
+            return prev
           }
         }
       })
     },
-    [setValue],
+    [selectionMode, setValue],
   )
 
   useUpdateEffect(() => {

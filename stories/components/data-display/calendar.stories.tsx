@@ -33,6 +33,18 @@ const meta: Meta<typeof Calendar> = {
 
 export default meta
 
+export const single: Story = () => {
+  return <Calendar selectionMode="single" />
+}
+
+export const multiple: Story = () => {
+  return <Calendar defaultValue={[]} selectionMode="multiple" />
+}
+
+export const range: Story = () => {
+  return <Calendar defaultValue={[]} selectionMode="range" />
+}
+
 export const basic: Story = () => {
   return <Calendar />
 }
